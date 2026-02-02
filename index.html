@@ -3,28 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Raksha - SOS Fix</title>
+    <title>Raksha - SOS Shield</title>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; text-align: center; background-color: #ffebee; padding: 20px; }
-        .btn { width: 100%; padding: 25px; font-size: 20px; border: none; border-radius: 15px; color: white; font-weight: bold; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+        body { font-family: 'Segoe UI', sans-serif; text-align: center; background-color: #ffebee; margin: 0; padding: 20px; height: 100vh; display: flex; flex-direction: column; justify-content: center; }
+        .btn { width: 100%; padding: 25px; font-size: 22px; border: none; border-radius: 15px; color: white; font-weight: bold; cursor: pointer; box-shadow: 0 6px 15px rgba(0,0,0,0.3); }
         .btn-orange { background: linear-gradient(135deg, #ef6c00, #ff9800); }
-        .guard-active { background: #333 !important; color: #ff9800 !important; border: 3px solid #ff9800; animation: flash 1s infinite; }
-        @keyframes flash { 0% {opacity: 1;} 50% {opacity: 0.6;} 100% {opacity: 1;} }
-        #status { margin-top: 25px; font-weight: bold; font-size: 18px; color: #b71c1c; }
+        .guard-active { background: #1a1a1a !important; color: #ff9800 !important; border: 3px solid #ff9800; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% {box-shadow: 0 0 0 0px rgba(239, 108, 0, 0.7);} 100% {box-shadow: 0 0 0 20px rgba(239, 108, 0, 0);} }
+        #status { margin-top: 30px; font-weight: bold; font-size: 18px; color: #b71c1c; }
+        #remoteTrap { position: absolute; opacity: 0; top: 0; left: 0; width: 1px; height: 1px; }
     </style>
 </head>
 <body>
 
-    <h2>🛡️ SOS Remote Shield</h2>
+    <h2>🛡️ Raksha Remote Shield</h2>
+
+    <input type="text" id="remoteTrap" autofocus>
 
     <button id="guardBtn" class="btn btn-orange" onclick="activateGuard()">
         🔗 ACTIVATE GUARD
-        <br><span style="font-size:12px; font-weight:normal;">(Tap then click Remote)</span>
+        <br><span style="font-size:12px; font-weight:normal;">(Press Remote after Tapping)</span>
     </button>
 
-    <div id="status">Status: Offline</div>
+    <div id="status">Status: Waiting...</div>
 
-    <audio id="sosAudio" loop>
+    <audio id="sosAudio" loop preload="auto">
         <source src="https://www.soundjay.com/buttons/beep-01a.mp3" type="audio/mpeg">
     </audio>
 
@@ -35,60 +38,80 @@
         let isGuardActive = false;
         let sosTriggered = false;
         const audio = document.getElementById('sosAudio');
+        const trap = document.getElementById('remoteTrap');
 
         async function activateGuard() {
             if (isGuardActive) return;
             
             try {
-                // Audio chalu karo (Volume bilkul kam)
-                audio.volume = 0.05;
+                // 1. Audio Start
+                audio.volume = 0.1;
                 await audio.play();
 
-                // 🔴 MAIN TRICK: Jab remote sound rokega (Pause karega), SOS chalega
-                audio.onpause = function() {
+                // 2. REMOTE FIX: Agar sound ruka, toh SOS
+                audio.addEventListener('pause', () => {
                     if (isGuardActive && !sosTriggered) {
-                        triggerSOS("Remote (Pause Event)");
+                        triggerSOS("Remote Button (Sound Pause)");
                     }
-                };
+                });
 
-                // Media Session handles for other buttons
+                // 3. REMOTE FIX: Agar sound ki speed badli (kuch remotes ye karte hain)
+                audio.addEventListener('ratechange', () => {
+                   if (isGuardActive && !sosTriggered) triggerSOS("Remote Speed Change");
+                });
+
+                // 4. Media Session (Standard Remote Control)
                 if ('mediaSession' in navigator) {
-                    navigator.mediaSession.metadata = new MediaMetadata({ title: 'Safety Active' });
-                    navigator.mediaSession.setActionHandler('play', () => triggerSOS("Remote Play"));
-                    navigator.mediaSession.setActionHandler('pause', () => triggerSOS("Remote Pause"));
-                    navigator.mediaSession.setActionHandler('nexttrack', () => triggerSOS("Remote Next"));
+                    navigator.mediaSession.metadata = new MediaMetadata({ title: 'Raksha Active' });
+                    navigator.mediaSession.setActionHandler('play', () => triggerSOS("Media Play"));
+                    navigator.mediaSession.setActionHandler('pause', () => triggerSOS("Media Pause"));
                 }
+
+                // 5. Input Trap (Key detection)
+                trap.focus();
+                trap.addEventListener('input', () => triggerSOS("Remote Input"));
 
                 isGuardActive = true;
                 document.getElementById('guardBtn').classList.add('guard-active');
-                document.getElementById('guardBtn').innerHTML = "🛡️ GUARD ACTIVE<br>Press Remote Button Now";
-                document.getElementById('status').innerText = "🟢 System Listening...";
+                document.getElementById('guardBtn').innerHTML = "🛡️ GUARD ACTIVE<br>Press Button to SOS";
+                document.getElementById('status').innerText = "🟢 Scanning for Signal...";
                 document.getElementById('status').style.color = "green";
 
             } catch (err) {
-                alert("Please tap again to allow audio.");
+                alert("Please tap again to enable remote.");
             }
         }
+
+        // Window level backup
+        window.addEventListener('keydown', (e) => {
+            if(isGuardActive) triggerSOS("Key: " + e.key);
+        });
 
         function triggerSOS(source) {
             if (sosTriggered) return;
             sosTriggered = true;
 
-            document.getElementById('status').innerText = "🚨 SOS TRIGGERED!";
+            // Immediate Feedback
             document.body.style.backgroundColor = "black";
-            
-            if (navigator.vibrate) navigator.vibrate([500, 200, 500]);
+            document.getElementById('status').innerText = "🚨 SOS TRIGGERED!";
+            if (navigator.vibrate) navigator.vibrate([500, 200, 500, 200, 500]);
 
-            // Get Location & Send Telegram
+            // Telegram Alert
             navigator.geolocation.getCurrentPosition(pos => {
-                const msg = `🚨 SOS TRIGGERED!\nSource: ${source}\nLoc: https://www.google.com/maps?q=${pos.coords.latitude},${pos.coords.longitude}`;
-                fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(msg)}`);
+                const lat = pos.coords.latitude;
+                const lon = pos.coords.longitude;
+                const msg = `🚨 SOS ALERT!\nSource: ${source}\nLocation: http://maps.google.com/maps?q=${lat},${lon}`;
+                
+                fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(msg)}`)
+                .then(() => {
+                    // Call Emergency
+                    window.location.href = "tel:112";
+                });
+            }, (err) => {
+                // Location fail ho toh bina location ke bhejo
+                fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=🚨 SOS! Remote Clicked (Location Hidden)`)
+                .then(() => window.location.href = "tel:112");
             });
-
-            // Call Emergency
-            setTimeout(() => {
-                window.location.href = "tel:112";
-            }, 1500);
         }
     </script>
 </body>
