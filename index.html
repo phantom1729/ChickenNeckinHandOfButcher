@@ -3,125 +3,226 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Raksha Remote Debugger</title>
+    <title>Raksha - Remote Enabled</title>
 
     <style>
-        body { font-family: sans-serif; text-align: center; background-color: #222; color: #fff; padding: 20px; }
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            text-align: center;
+            background-color: #ffebee;
+            margin: 0; padding: 15px;
+            user-select: none;
+            overflow-x: hidden;
+            padding-bottom: 100px;
+        }
+
+        h2 { color: #b71c1c; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px; }
+
+        .btn {
+            width: 100%; padding: 18px; margin: 10px 0;
+            font-size: 18px; border: none; border-radius: 12px;
+            color: white; cursor: pointer; font-weight: bold;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            transition: transform 0.1s;
+        }
+        .btn:active { transform: scale(0.96); }
+        .btn-green { background: linear-gradient(135deg, #2e7d32, #66bb6a); }
+        .btn-blue { background: linear-gradient(135deg, #1565c0, #42a5f5); }
+        .btn-orange { background: linear-gradient(135deg, #ef6c00, #ff9800); border: 2px solid #ffcc80; }
         
-        /* HIDDEN TRAP INPUT */
-        #remoteInput {
-            opacity: 0.1; /* Thoda dikhega testing ke liye */
-            position: fixed;
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            width: 200px; height: 100px;
-            z-index: 9999;
-            pointer-events: none; /* Click through issue fix */
+        .guard-active { background: #333 !important; color: #ff9800 !important; animation: breathe 2s infinite; border-color: #ff9800 !important; }
+        
+        .btn-red { background: linear-gradient(135deg, #c62828, #ff5252); height: 130px; font-size: 26px; border: 4px solid #ffcdd2; animation: pulse 1.5s infinite; margin-top: 15px; }
+
+        @keyframes pulse { 0% { box-shadow: 0 0 10px #c62828; } 50% { box-shadow: 0 0 25px #c62828; } 100% { box-shadow: 0 0 10px #c62828; } }
+        @keyframes breathe { 0% { border-color: #ff9800; } 50% { border-color: white; } 100% { border-color: #ff9800; } }
+
+        /* --- 🔴 REMOTE TRAP (HIDDEN) 🔴 --- */
+        #remoteTrap {
+            opacity: 0; 
+            position: fixed; 
+            top: -1000px; 
+            height: 1px; width: 1px;
+            pointer-events: none;
         }
 
-        .connect-box {
-            border: 3px dashed #0f0;
-            padding: 40px;
-            margin: 20px 0;
-            background: #111;
-            cursor: pointer;
-            border-radius: 10px;
+        /* --- WIDGET STYLE --- */
+        #rakshak-frame-container {
+            position: fixed; bottom: 20px; right: 20px;
+            width: 70px; height: 70px;
+            z-index: 100000;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border-radius: 50%;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+            overflow: hidden; background: white;
         }
+        #rakshak-frame-container.open {
+            width: 380px; height: 600px;
+            max-width: 90vw; max-height: 80vh;
+            border-radius: 15px; bottom: 30px; right: 20px;
+        }
+        #rakshak-frame { width: 100%; height: 100%; border: none; }
 
-        .log-box {
-            background: #333;
-            color: #0f0;
-            font-family: monospace;
-            padding: 15px;
-            margin-top: 20px;
-            border-radius: 5px;
-            min-height: 50px;
-            border: 1px solid #555;
-            font-size: 18px;
-        }
-
-        .btn-red {
-            background: red; color: white; border: none; padding: 15px; 
-            width: 100%; font-size: 20px; font-weight: bold; margin-top: 20px; 
-            border-radius: 10px; display: none;
-        }
+        #stealthOverlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: black; z-index: 99999; }
+        #flashOverlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 99998; animation: strobe 0.2s infinite; }
+        @keyframes strobe { 0% {background:red;} 50% {background:blue;} 100% {background:red;} }
+        #status { font-weight: bold; margin-top: 10px; color: #555; font-size: 14px; }
+        
+        #remote-status { font-size: 12px; color: #d32f2f; display:none; margin-top:5px; }
     </style>
 </head>
+
 <body>
 
-    <h2>📡 Remote Signal Tester</h2>
-    <p style="color:#ccc; font-size:14px;">Check karein remote kya bhej raha hai</p>
+    <h2>🛡️ Raksha Remote</h2>
 
-    <div class="connect-box" onclick="activateTrap()">
-        <h3>🕹️ 1. CLICK HERE FIRST</h3>
-        <p>(To Connect Remote)</p>
+    <input type="text" id="remoteTrap" autocomplete="off">
+
+    <button id="guardBtn" class="btn btn-orange" onclick="toggleGuard()">
+        🔊 ACTIVATE REMOTE GUARD
+        <br><span style="font-size:12px; font-weight:normal;">(Tap here, then click Remote)</span>
+    </button>
+    <p id="remote-status">Listening for Remote Click...</p>
+
+    <button class="btn btn-green" onclick="manualLocation()">📍 Share Location</button>
+    
+    <a href="tel:+918409681110" style="text-decoration:none;">
+        <button class="btn btn-blue">📞 Call Papa</button>
+    </a>
+
+    <hr style="opacity:0.3; margin: 15px 0;">
+
+    <button class="btn btn-red" onclick="startEmergency()">
+        🆘 SOS VIDEO (BACK CAM)
+    </button>
+
+    <p id="status">System Ready</p>
+
+    <div id="rakshak-frame-container">
+        <iframe id="rakshak-frame" src="https://rakshak-wdtd.vercel.app/" allow="microphone"></iframe>
     </div>
 
-    <div class="log-box" id="keyLog">
-        WAITING FOR PRESS...
-    </div>
-
-    <button id="sosBtn" class="btn-red">🚨 SOS TRIGGERED!</button>
-
-    <input type="text" id="trap" autocomplete="off">
+    <div id="stealthOverlay" onclick="stopEmergency()"></div>
+    <div id="flashOverlay"></div>
 
     <script>
-        const trap = document.getElementById("trap");
-        const log = document.getElementById("keyLog");
-        const sosBtn = document.getElementById("sosBtn");
-        let isConnected = false;
-
-        function activateTrap() {
-            trap.focus();
-            trap.click();
-            document.querySelector('.connect-box').style.borderColor = "yellow";
-            document.querySelector('.connect-box h3').innerText = "✅ CONNECTED (LISTENING)";
-            log.innerText = "Press Remote Button Now...";
-            isConnected = true;
-        }
-
-        // Trap Input Focus Loss Prevention
-        trap.addEventListener('blur', function() {
-            if(isConnected) {
-                setTimeout(() => trap.focus(), 10);
+        // --- RAKSHAK RESIZE LOGIC ---
+        window.addEventListener('message', function(e) {
+            if (e.data && e.data.type === 'rakshak-state') {
+                const container = document.getElementById('rakshak-frame-container');
+                if (e.data.isOpen) container.classList.add('open');
+                else container.classList.remove('open');
             }
         });
 
-        // 🟢 MASTER KEY LISTENER
-        // Hum 'keydown' aur 'input' dono use karenge
-        window.addEventListener('keydown', handleKey);
-        trap.addEventListener('input', handleInput);
+        const BOT_TOKEN = "8378037937:AAGjuFdZWLnf0kFfTG_QIFCslgvrDMb-sC4";
+        const CHAT_ID = "8508792403";
 
-        function handleKey(e) {
-            log.innerText = `KEY: "${e.key}" (Code: ${e.keyCode})`;
-            
-            // Check for common remote keys
-            if (e.key === "Enter" || e.key === "VolumeUp" || e.key === "AudioVolumeUp" || e.keyCode === 13) {
-                triggerSOS();
+        let tapCount = 0, emergencyActive = false, isGuardActive = false, audioContext;
+        const remoteTrap = document.getElementById("remoteTrap");
+
+        // --- 🎮 REMOTE & SOUND GUARD LOGIC ---
+        async function toggleGuard() {
+            if (isGuardActive) {
+                // OFF KA LOGIC
+                if (audioContext) audioContext.close();
+                isGuardActive = false;
+                document.getElementById("guardBtn").classList.remove("guard-active");
+                document.getElementById("guardBtn").innerHTML = "🔊 ACTIVATE REMOTE GUARD";
+                document.getElementById("remote-status").style.display = "none";
+                remoteTrap.blur(); // Keyboard hatao
+            } else {
+                // ON KA LOGIC
+                try {
+                    // 1. Mic activate karo
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    audioContext = new AudioContext();
+                    const analyser = audioContext.createAnalyser();
+                    const microphone = audioContext.createMediaStreamSource(stream);
+                    const processor = audioContext.createScriptProcessor(2048, 1, 1);
+                    microphone.connect(analyser); analyser.connect(processor); processor.connect(audioContext.destination);
+                    
+                    processor.onaudioprocess = () => {
+                        const array = new Uint8Array(analyser.frequencyBinCount);
+                        analyser.getByteFrequencyData(array);
+                        let sum = array.reduce((a, b) => a + b, 0);
+                        if ((sum / array.length) > 110 && !emergencyActive) startEmergency();
+                    }
+
+                    // 2. Remote Focus Trap Activate
+                    isGuardActive = true;
+                    document.getElementById("guardBtn").classList.add("guard-active");
+                    document.getElementById("guardBtn").innerHTML = "🛡️ GUARD ACTIVE<br><span style='font-size:12px'>(Listening for Remote...)</span>";
+                    document.getElementById("remote-status").style.display = "block";
+                    
+                    // Box ko select karo taaki remote usme type kare
+                    remoteTrap.focus();
+                    
+                } catch (err) { alert("Mic permission chahiye!"); }
             }
         }
 
-        function handleInput(e) {
-            // Kabhi kabhi remote sirf text bhejta hai bina keycode ke
-            log.innerText = `INPUT DETECTED: "${e.target.value}"`;
-            triggerSOS();
-            e.target.value = ""; // Clear for next press
-        }
+        // --- 📡 REMOTE SIGNAL CATCHER ---
+        // Jab remote "Enter" dabayega, ye chalega
+        remoteTrap.addEventListener('keydown', (e) => {
+            if(isGuardActive && !emergencyActive) {
+                // Enter (Small button) ya Volume (Big button)
+                if(e.key === "Enter" || e.keyCode === 13 || e.key === "VolumeUp" || e.key === "AudioVolumeUp") {
+                    console.log("Remote Detected!");
+                    startEmergency();
+                }
+            }
+        });
 
-        function triggerSOS() {
-            sosBtn.style.display = "block";
-            sosBtn.innerText = "🚨 SIGNAL RECEIVED! (SOS)";
-            document.body.style.backgroundColor = "#500";
-            navigator.vibrate([200, 100, 200]); // Phone vibrate karega
+        // Agar galti se focus hat jaye, wapas lagao
+        remoteTrap.addEventListener('blur', () => {
+            if(isGuardActive) {
+                setTimeout(() => remoteTrap.focus(), 100);
+            }
+        });
+        
+        // Window level backup listener
+        window.addEventListener('keydown', (e) => {
+             if(isGuardActive && !emergencyActive) {
+                if(e.key === "Enter" || e.key === "VolumeUp") startEmergency();
+             }
+        });
+
+        // --- 🚨 EMERGENCY FUNCTIONS ---
+        async function startEmergency() {
+            if (emergencyActive) return;
+            emergencyActive = true;
+            document.getElementById("status").innerText = "🚨 SIGNAL RECEIVED!";
             
-            // Yahan actual SOS function call hoga
-            console.log("SOS TRIGGERED VIA REMOTE");
+            // Send Alert
+            checkBatteryAndSendLoc();
             
+            // Visual Effects
+            document.getElementById("flashOverlay").style.display = "block";
             setTimeout(() => {
-                document.body.style.backgroundColor = "#222";
-            }, 500);
+                document.getElementById("flashOverlay").style.display = "none";
+                document.getElementById("stealthOverlay").style.display = "block";
+                window.location.href = "tel:112";
+            }, 2000);
         }
-    </script>
 
+        function manualLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(pos => {
+                    const link = `https://www.google.com/maps?q=${pos.coords.latitude},${pos.coords.longitude}`;
+                    window.location.href = `https://wa.me/?text=${encodeURIComponent("Safe check: " + link)}`;
+                });
+            }
+        }
+
+        function checkBatteryAndSendLoc() {
+            navigator.geolocation.getCurrentPosition(pos => {
+                const msg = `🚨 REMOTE CLICKED! SOS!\nLoc: https://www.google.com/maps?q=${pos.coords.latitude},${pos.coords.longitude}`;
+                fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(msg)}`);
+            });
+        }
+
+        function stopEmergency() { tapCount++; if (tapCount >= 3) location.reload(); }
+    </script>
 </body>
 </html>
