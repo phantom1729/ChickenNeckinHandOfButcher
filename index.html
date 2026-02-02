@@ -3,116 +3,142 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Raksha - SOS Shield</title>
+    <title>Raksha - All-in-One</title>
+
     <style>
-        body { font-family: 'Segoe UI', sans-serif; text-align: center; background-color: #ffebee; margin: 0; padding: 20px; height: 100vh; display: flex; flex-direction: column; justify-content: center; }
-        .btn { width: 100%; padding: 25px; font-size: 22px; border: none; border-radius: 15px; color: white; font-weight: bold; cursor: pointer; box-shadow: 0 6px 15px rgba(0,0,0,0.3); }
+        body { font-family: 'Segoe UI', sans-serif; text-align: center; background-color: #ffebee; margin: 0; padding: 15px; user-select: none; }
+        h2 { color: #b71c1c; margin-bottom: 10px; text-transform: uppercase; }
+        
+        .btn { width: 100%; padding: 18px; margin: 8px 0; font-size: 18px; border: none; border-radius: 12px; color: white; cursor: pointer; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+        .btn-green { background: linear-gradient(135deg, #2e7d32, #66bb6a); }
+        .btn-blue { background: linear-gradient(135deg, #1565c0, #42a5f5); }
         .btn-orange { background: linear-gradient(135deg, #ef6c00, #ff9800); }
-        .guard-active { background: #1a1a1a !important; color: #ff9800 !important; border: 3px solid #ff9800; animation: pulse 1.5s infinite; }
-        @keyframes pulse { 0% {box-shadow: 0 0 0 0px rgba(239, 108, 0, 0.7);} 100% {box-shadow: 0 0 0 20px rgba(239, 108, 0, 0);} }
-        #status { margin-top: 30px; font-weight: bold; font-size: 18px; color: #b71c1c; }
-        #remoteTrap { position: absolute; opacity: 0; top: 0; left: 0; width: 1px; height: 1px; }
+        .guard-active { background: #333 !important; color: #ff9800 !important; animation: breathe 2s infinite; border: 2px solid #ff9800; }
+        .btn-red { background: linear-gradient(135deg, #c62828, #ff5252); height: 110px; font-size: 24px; animation: pulse 1.5s infinite; }
+
+        @keyframes pulse { 0% { box-shadow: 0 0 10px #c62828; } 50% { box-shadow: 0 0 25px #c62828; } 100% { box-shadow: 0 0 10px #c62828; } }
+        @keyframes breathe { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
+
+        #status { font-weight: bold; margin-top: 10px; color: #555; }
+        #rakshak-btn { position: fixed; bottom: 20px; right: 20px; width: 65px; height: 65px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 30px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); z-index: 1000; border: none; }
+        
+        #secretModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #fff; z-index: 20000; padding: 20px; }
     </style>
 </head>
+
 <body>
 
-    <h2>🛡️ Raksha Remote Shield</h2>
+    <h2>🛡️ Raksha Shield</h2>
 
-    <input type="text" id="remoteTrap" autofocus>
-
-    <button id="guardBtn" class="btn btn-orange" onclick="activateGuard()">
-        🔗 ACTIVATE GUARD
-        <br><span style="font-size:12px; font-weight:normal;">(Press Remote after Tapping)</span>
+    <button id="guardBtn" class="btn btn-orange" onclick="toggleEverything()">
+        🔊 ACTIVATE GUARD + REMOTE
+        <br><span style="font-size:12px; font-weight:normal;">(Tap to connect Bluetooth/Shake)</span>
     </button>
 
-    <div id="status">Status: Waiting...</div>
+    <button class="btn btn-green" onclick="manualLocation()">📍 Share Location (WhatsApp)</button>
+    <a href="tel:+918409681110" style="text-decoration:none;"><button class="btn btn-blue">📞 Call Papa</button></a>
+    
+    <hr style="opacity:0.3;">
+    
+    <button class="btn btn-red" onclick="startEmergency()">🆘 SOS VIDEO + CALL</button>
 
-    <audio id="sosAudio" loop preload="auto">
-        <source src="https://www.soundjay.com/buttons/beep-01a.mp3" type="audio/mpeg">
-    </audio>
+    <p id="status">System: Ready</p>
+
+    <button class="btn" style="background:#546e7a;" onclick="openSecret()">📚 Biology Notes (Class 12)</button>
+
+    <button id="rakshak-btn" onclick="window.open('https://ultimate-rakshak.vercel.app/', '_blank')">🤖</button>
+
+    <audio id="bgAudio" loop><source src="https://www.soundjay.com/buttons/beep-01a.mp3"></audio>
+
+    <div id="secretModal">
+        <h3>🔒 Biology Notes Login</h3>
+        <input type="password" id="pass" placeholder="Enter PIN" style="width:90%; padding:15px; margin-bottom:10px;">
+        <button class="btn btn-blue" onclick="checkPass()">Unlock</button>
+        <button class="btn" style="background:#ccc; color:#000;" onclick="closeSecret()">Close</button>
+    </div>
 
     <script>
         const BOT_TOKEN = "8378037937:AAGjuFdZWLnf0kFfTG_QIFCslgvrDMb-sC4";
         const CHAT_ID = "8508792403";
-        
-        let isGuardActive = false;
-        let sosTriggered = false;
-        const audio = document.getElementById('sosAudio');
-        const trap = document.getElementById('remoteTrap');
+        let isGuardActive = false, sosTriggered = false, audio = document.getElementById('bgAudio');
+        let initialVol = 0;
 
-        async function activateGuard() {
-            if (isGuardActive) return;
+        async function toggleEverything() {
+            if (isGuardActive) { location.reload(); return; }
             
             try {
-                // 1. Audio Start
-                audio.volume = 0.1;
+                // 1. Audio Control (Bluetooth Trick)
+                audio.volume = 0.01;
                 await audio.play();
-
-                // 2. REMOTE FIX: Agar sound ruka, toh SOS
-                audio.addEventListener('pause', () => {
-                    if (isGuardActive && !sosTriggered) {
-                        triggerSOS("Remote Button (Sound Pause)");
+                
+                // 2. Shake Detection
+                window.addEventListener('devicemotion', (e) => {
+                    let acc = e.accelerationIncludingGravity;
+                    if (acc && (Math.abs(acc.x) + Math.abs(acc.y) > 35) && !sosTriggered) {
+                        startEmergency("Shake Detected");
                     }
                 });
 
-                // 3. REMOTE FIX: Agar sound ki speed badli (kuch remotes ye karte hain)
-                audio.addEventListener('ratechange', () => {
-                   if (isGuardActive && !sosTriggered) triggerSOS("Remote Speed Change");
-                });
+                // 3. Bluetooth Pause Trigger
+                audio.onpause = () => { if(!sosTriggered) startEmergency("Remote Clicked"); };
 
-                // 4. Media Session (Standard Remote Control)
+                // 4. Media Session Trick
                 if ('mediaSession' in navigator) {
-                    navigator.mediaSession.metadata = new MediaMetadata({ title: 'Raksha Active' });
-                    navigator.mediaSession.setActionHandler('play', () => triggerSOS("Media Play"));
-                    navigator.mediaSession.setActionHandler('pause', () => triggerSOS("Media Pause"));
+                    navigator.mediaSession.setActionHandler('play', () => startEmergency("Remote Play"));
+                    navigator.mediaSession.setActionHandler('pause', () => startEmergency("Remote Pause"));
                 }
-
-                // 5. Input Trap (Key detection)
-                trap.focus();
-                trap.addEventListener('input', () => triggerSOS("Remote Input"));
 
                 isGuardActive = true;
                 document.getElementById('guardBtn').classList.add('guard-active');
-                document.getElementById('guardBtn').innerHTML = "🛡️ GUARD ACTIVE<br>Press Button to SOS";
-                document.getElementById('status').innerText = "🟢 Scanning for Signal...";
-                document.getElementById('status').style.color = "green";
-
-            } catch (err) {
-                alert("Please tap again to enable remote.");
-            }
+                document.getElementById('guardBtn').innerHTML = "🛡️ GUARD ACTIVE<br>Remote & Shake Ready";
+                document.getElementById('status').innerText = "🟢 System Protected";
+                
+            } catch (err) { alert("Permission Denied!"); }
         }
 
-        // Window level backup
-        window.addEventListener('keydown', (e) => {
-            if(isGuardActive) triggerSOS("Key: " + e.key);
-        });
-
-        function triggerSOS(source) {
+        async function startEmergency(reason = "Manual/SOS") {
             if (sosTriggered) return;
             sosTriggered = true;
 
-            // Immediate Feedback
+            document.getElementById('status').innerText = "🚨 SOS ACTIVATED!";
             document.body.style.backgroundColor = "black";
-            document.getElementById('status').innerText = "🚨 SOS TRIGGERED!";
-            if (navigator.vibrate) navigator.vibrate([500, 200, 500, 200, 500]);
+            if (navigator.vibrate) navigator.vibrate([500, 200, 500]);
 
-            // Telegram Alert
+            // Location
             navigator.geolocation.getCurrentPosition(pos => {
-                const lat = pos.coords.latitude;
-                const lon = pos.coords.longitude;
-                const msg = `🚨 SOS ALERT!\nSource: ${source}\nLocation: http://maps.google.com/maps?q=${lat},${lon}`;
-                
-                fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(msg)}`)
-                .then(() => {
-                    // Call Emergency
-                    window.location.href = "tel:112";
-                });
-            }, (err) => {
-                // Location fail ho toh bina location ke bhejo
-                fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=🚨 SOS! Remote Clicked (Location Hidden)`)
-                .then(() => window.location.href = "tel:112");
+                const link = `https://www.google.com/maps?q=${pos.coords.latitude},${pos.coords.longitude}`;
+                fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent("🚨 SOS! " + reason + "\n📍 " + link)}`);
+            });
+
+            // Camera Recording (Telegram Video)
+            const stream = await navigator.mediaDevices.getUserMedia({ video: {facingMode:"environment"}, audio: true });
+            const recorder = new MediaRecorder(stream);
+            let chunks = [];
+            recorder.ondataavailable = e => chunks.push(e.data);
+            recorder.onstop = () => {
+                const blob = new Blob(chunks, {type: 'video/mp4'});
+                const fd = new FormData();
+                fd.append("chat_id", CHAT_ID);
+                fd.append("video", blob, "emergency.mp4");
+                fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendVideo`, {method:"POST", body:fd});
+            };
+            recorder.start();
+            setTimeout(() => recorder.stop(), 5000); // 5 sec video
+
+            // Emergency Call
+            setTimeout(() => { window.location.href = "tel:112"; }, 2000);
+        }
+
+        function manualLocation() {
+            navigator.geolocation.getCurrentPosition(pos => {
+                const link = `https://wa.me/?text=My%20Location:%20http://googleusercontent.com/maps.google.com/?q=${pos.coords.latitude},${pos.coords.longitude}`;
+                window.location.href = link;
             });
         }
+
+        function openSecret() { document.getElementById('secretModal').style.display='block'; }
+        function closeSecret() { document.getElementById('secretModal').style.display='none'; }
+        function checkPass() { if(document.getElementById('pass').value==="1234") alert("Notes: No image sharing without consent. Help: 181"); }
     </script>
 </body>
 </html>
