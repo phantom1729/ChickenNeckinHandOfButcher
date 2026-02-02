@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Raksha Remote Debugger</title>
+
+    <style>
+        body { font-family: sans-serif; text-align: center; background-color: #222; color: #fff; padding: 20px; }
+        
+        /* HIDDEN TRAP INPUT */
+        #remoteInput {
+            opacity: 0.1; /* Thoda dikhega testing ke liye */
+            position: fixed;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 200px; height: 100px;
+            z-index: 9999;
+            pointer-events: none; /* Click through issue fix */
+        }
+
+        .connect-box {
+            border: 3px dashed #0f0;
+            padding: 40px;
+            margin: 20px 0;
+            background: #111;
+            cursor: pointer;
+            border-radius: 10px;
+        }
+
+        .log-box {
+            background: #333;
+            color: #0f0;
+            font-family: monospace;
+            padding: 15px;
+            margin-top: 20px;
+            border-radius: 5px;
+            min-height: 50px;
+            border: 1px solid #555;
+            font-size: 18px;
+        }
+
+        .btn-red {
+            background: red; color: white; border: none; padding: 15px; 
+            width: 100%; font-size: 20px; font-weight: bold; margin-top: 20px; 
+            border-radius: 10px; display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>📡 Remote Signal Tester</h2>
+    <p style="color:#ccc; font-size:14px;">Check karein remote kya bhej raha hai</p>
+
+    <div class="connect-box" onclick="activateTrap()">
+        <h3>🕹️ 1. CLICK HERE FIRST</h3>
+        <p>(To Connect Remote)</p>
+    </div>
+
+    <div class="log-box" id="keyLog">
+        WAITING FOR PRESS...
+    </div>
+
+    <button id="sosBtn" class="btn-red">🚨 SOS TRIGGERED!</button>
+
+    <input type="text" id="trap" autocomplete="off">
+
+    <script>
+        const trap = document.getElementById("trap");
+        const log = document.getElementById("keyLog");
+        const sosBtn = document.getElementById("sosBtn");
+        let isConnected = false;
+
+        function activateTrap() {
+            trap.focus();
+            trap.click();
+            document.querySelector('.connect-box').style.borderColor = "yellow";
+            document.querySelector('.connect-box h3').innerText = "✅ CONNECTED (LISTENING)";
+            log.innerText = "Press Remote Button Now...";
+            isConnected = true;
+        }
+
+        // Trap Input Focus Loss Prevention
+        trap.addEventListener('blur', function() {
+            if(isConnected) {
+                setTimeout(() => trap.focus(), 10);
+            }
+        });
+
+        // 🟢 MASTER KEY LISTENER
+        // Hum 'keydown' aur 'input' dono use karenge
+        window.addEventListener('keydown', handleKey);
+        trap.addEventListener('input', handleInput);
+
+        function handleKey(e) {
+            log.innerText = `KEY: "${e.key}" (Code: ${e.keyCode})`;
+            
+            // Check for common remote keys
+            if (e.key === "Enter" || e.key === "VolumeUp" || e.key === "AudioVolumeUp" || e.keyCode === 13) {
+                triggerSOS();
+            }
+        }
+
+        function handleInput(e) {
+            // Kabhi kabhi remote sirf text bhejta hai bina keycode ke
+            log.innerText = `INPUT DETECTED: "${e.target.value}"`;
+            triggerSOS();
+            e.target.value = ""; // Clear for next press
+        }
+
+        function triggerSOS() {
+            sosBtn.style.display = "block";
+            sosBtn.innerText = "🚨 SIGNAL RECEIVED! (SOS)";
+            document.body.style.backgroundColor = "#500";
+            navigator.vibrate([200, 100, 200]); // Phone vibrate karega
+            
+            // Yahan actual SOS function call hoga
+            console.log("SOS TRIGGERED VIA REMOTE");
+            
+            setTimeout(() => {
+                document.body.style.backgroundColor = "#222";
+            }, 500);
+        }
+    </script>
+
+</body>
+</html>
