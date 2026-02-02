@@ -3,46 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Raksha - Bluetooth Pro</title>
+    <title>Raksha - SOS Fix</title>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; text-align: center; background-color: #ffebee; margin: 0; padding: 15px; overflow-x: hidden; }
-        h2 { color: #b71c1c; margin-top: 20px; }
-        
-        .btn { width: 100%; padding: 20px; margin: 10px 0; font-size: 18px; border: none; border-radius: 12px; color: white; font-weight: bold; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.2); transition: 0.2s; }
+        body { font-family: 'Segoe UI', sans-serif; text-align: center; background-color: #ffebee; padding: 20px; }
+        .btn { width: 100%; padding: 25px; font-size: 20px; border: none; border-radius: 15px; color: white; font-weight: bold; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
         .btn-orange { background: linear-gradient(135deg, #ef6c00, #ff9800); }
-        .guard-active { background: #333 !important; color: #ff9800 !important; border: 2px solid #ff9800; animation: pulse 2s infinite; }
-        
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
-        
-        #status { margin-top: 20px; font-weight: bold; color: #555; }
-        #debug { font-size: 10px; color: #999; margin-top: 10px; }
-
-        /* Floating Heart Icon */
-        #rakshak-btn {
-            position: fixed; bottom: 25px; right: 25px;
-            width: 70px; height: 70px; background: white;
-            border-radius: 50%; box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-            display: flex; align-items: center; justify-content: center;
-            font-size: 35px; cursor: pointer; z-index: 1000; border: none;
-        }
+        .guard-active { background: #333 !important; color: #ff9800 !important; border: 3px solid #ff9800; animation: flash 1s infinite; }
+        @keyframes flash { 0% {opacity: 1;} 50% {opacity: 0.6;} 100% {opacity: 1;} }
+        #status { margin-top: 25px; font-weight: bold; font-size: 18px; color: #b71c1c; }
     </style>
 </head>
 <body>
 
-    <h2>🛡️ Raksha Remote Fix</h2>
+    <h2>🛡️ SOS Remote Shield</h2>
 
-    <button id="guardBtn" class="btn btn-orange" onclick="startSystem()">
-        🔗 ACTIVATE REMOTE GUARD
-        <br><span style="font-size:12px; font-weight:normal;">(Tap and then press Remote Button)</span>
+    <button id="guardBtn" class="btn btn-orange" onclick="activateGuard()">
+        🔗 ACTIVATE GUARD
+        <br><span style="font-size:12px; font-weight:normal;">(Tap then click Remote)</span>
     </button>
 
-    <div id="status">Status: Waiting for Activation...</div>
-    <div id="debug">System: Ready</div>
+    <div id="status">Status: Offline</div>
 
-    <button id="rakshak-btn" onclick="window.open('https://ultimate-rakshak.vercel.app/', '_blank')">❤️</button>
-
-    <audio id="silentMode" loop>
-        <source src="https://actions.google.com/sounds/v1/science_fiction/low_frequency_noise.ogg" type="audio/ogg">
+    <audio id="sosAudio" loop>
+        <source src="https://www.soundjay.com/buttons/beep-01a.mp3" type="audio/mpeg">
     </audio>
 
     <script>
@@ -51,87 +34,62 @@
         
         let isGuardActive = false;
         let sosTriggered = false;
-        let lastVol = -1;
+        const audio = document.getElementById('sosAudio');
 
-        async function startSystem() {
+        async function activateGuard() {
             if (isGuardActive) return;
-
-            const audio = document.getElementById('silentMode');
-            const btn = document.getElementById('guardBtn');
-            const status = document.getElementById('status');
-
+            
             try {
-                // 1. Play Silent Audio (Volume 0.01 taaki sunayi na de par Bluetooth active rahe)
-                audio.volume = 0.01;
+                // Audio chalu karo (Volume bilkul kam)
+                audio.volume = 0.05;
                 await audio.play();
 
-                // 2. Media Session API (Remote Signals)
+                // 🔴 MAIN TRICK: Jab remote sound rokega (Pause karega), SOS chalega
+                audio.onpause = function() {
+                    if (isGuardActive && !sosTriggered) {
+                        triggerSOS("Remote (Pause Event)");
+                    }
+                };
+
+                // Media Session handles for other buttons
                 if ('mediaSession' in navigator) {
                     navigator.mediaSession.metadata = new MediaMetadata({ title: 'Safety Active' });
-                    
-                    const actions = ['play', 'pause', 'nexttrack', 'previoustrack'];
-                    actions.forEach(action => {
-                        navigator.mediaSession.setActionHandler(action, triggerSOS);
-                    });
+                    navigator.mediaSession.setActionHandler('play', () => triggerSOS("Remote Play"));
+                    navigator.mediaSession.setActionHandler('pause', () => triggerSOS("Remote Pause"));
+                    navigator.mediaSession.setActionHandler('nexttrack', () => triggerSOS("Remote Next"));
                 }
 
-                // 3. Shake Detection (Phone jhatakne par bhi SOS)
-                window.addEventListener('devicemotion', (e) => {
-                    let acc = e.accelerationIncludingGravity;
-                    if (acc && (Math.abs(acc.x) + Math.abs(acc.y) > 30) && !sosTriggered) {
-                        triggerSOS();
-                    }
-                });
-
                 isGuardActive = true;
-                btn.classList.add('guard-active');
-                btn.innerHTML = "🛡️ GUARD IS ACTIVE<br>Press ANY Remote Button";
-                status.innerText = "Listening for Remote/Volume/Shake...";
-                status.style.color = "green";
+                document.getElementById('guardBtn').classList.add('guard-active');
+                document.getElementById('guardBtn').innerHTML = "🛡️ GUARD ACTIVE<br>Press Remote Button Now";
+                document.getElementById('status').innerText = "🟢 System Listening...";
+                document.getElementById('status').style.color = "green";
 
             } catch (err) {
-                alert("Permission needed for Audio/Sensors.");
+                alert("Please tap again to allow audio.");
             }
         }
 
-        function triggerSOS() {
+        function triggerSOS(source) {
             if (sosTriggered) return;
             sosTriggered = true;
 
             document.getElementById('status').innerText = "🚨 SOS TRIGGERED!";
             document.body.style.backgroundColor = "black";
             
-            // Vibration confirm karne ke liye
             if (navigator.vibrate) navigator.vibrate([500, 200, 500]);
 
-            // Telegram Alert with Location
+            // Get Location & Send Telegram
             navigator.geolocation.getCurrentPosition(pos => {
-                const lat = pos.coords.latitude;
-                const lon = pos.coords.longitude;
-                const mapsUrl = `https://www.google.com/maps?q=${lat},${lon}`;
-                const msg = `🚨 SOS! REMOTE/SHAKE DETECTED\n📍 Location: ${mapsUrl}`;
-                
+                const msg = `🚨 SOS TRIGGERED!\nSource: ${source}\nLoc: https://www.google.com/maps?q=${pos.coords.latitude},${pos.coords.longitude}`;
                 fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(msg)}`);
             });
 
-            // Auto Call after 2 seconds
+            // Call Emergency
             setTimeout(() => {
                 window.location.href = "tel:112";
-            }, 2000);
+            }, 1500);
         }
-
-        // Backup: Volume Change Detection
-        // Agar browser signal block kare, toh volume change hone par trigger hoga
-        setInterval(() => {
-            if (isGuardActive && !sosTriggered) {
-                // Hum height ya volume change check karte hain indirectly
-                if (window.innerHeight < (screen.height * 0.7)) {
-                    // Ye tab hota hai jab volume bar ya keyboard aata hai
-                    console.log("Volume/Screen Change Detected");
-                }
-            }
-        }, 500);
-
     </script>
 </body>
 </html>
